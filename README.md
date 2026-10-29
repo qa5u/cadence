@@ -4,7 +4,7 @@ Paste a sales or business call transcript and get back a set of call notes: summ
 
 Built for [TODO: hackathon track, e.g. "Best Apps & Agents"].
 
-- Demo: [TODO: demo URL]
+- Demo: https://cadence.web.id
 - Video: [TODO: video URL]
 - Repo: [TODO: repo URL]
 
@@ -71,7 +71,22 @@ Other scripts:
 pnpm build   # production build
 pnpm start   # serve the production build
 pnpm lint    # eslint
+pnpm deploy  # build and deploy to Cloudflare Workers
 ```
+
+## Deploy
+
+The app runs on Cloudflare Workers with `@opennextjs/cloudflare` and is attached to the `cadence.web.id` custom domain.
+
+```bash
+pnpm exec wrangler login
+pnpm exec wrangler secret put NEBIUS_API_KEY   # runtime secret
+pnpm deploy
+```
+
+`NEBIUS_MODEL` is a plain variable in `wrangler.jsonc`. `NEBIUS_API_KEY` is a Worker secret, read at runtime by `app/api/analyze/route.ts`.
+
+`next.config.ts` leaves out Next's experimental `cacheComponents` and `partialPrefetching` flags. With them on, the first request hangs in workerd because of its `setTimeout` implementation.
 
 ## Example
 
