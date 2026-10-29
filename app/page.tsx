@@ -1,9 +1,35 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Script from "next/script";
 import NoteView from "../components/NoteView";
 import SavedNotes from "../components/SavedNotes";
 import type { Note, LoaderType } from "../types";
+
+type TurnstileApi = {
+  render: (
+    el: HTMLElement,
+    opts: {
+      sitekey: string;
+      size?: "normal" | "compact" | "flexible" | "invisible";
+      execution?: "render" | "execute";
+      callback?: (token: string) => void;
+      "error-callback"?: () => void;
+      "timeout-callback"?: () => void;
+    }
+  ) => string;
+  execute: (id: string) => void;
+  reset: (id: string) => void;
+  remove: (id: string) => void;
+};
+
+declare global {
+  interface Window {
+    turnstile?: TurnstileApi;
+  }
+}
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 const EXAMPLE_CALL = `Maya (Northwind): Thanks for jumping on, Dan. Last time you said onboarding takes your reps six weeks.
 Dan (Acme): Right, and pricing is the sticking point. $40 a seat is more than we pay now.
@@ -73,18 +99,100 @@ export default function Home() {
     note: null,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const sessionRef = useRef<string | null>(null);
+  const tsBoxRef = useRef<HTMLDivElement>(null);
+  const tsWidgetRef = useRef<string | null>(null);
+  const tsResolveRef = useRef<((token: string) => void) | null>(null);
+  const tsRejectRef = useRef<((err: Error) => void) | null>(null);
+  const [tsLoaded, setTsLoaded] = useState(false);
 
   const words = (s: string) => (s.trim().match(/\S+/g) || []).length;
 
-  async function callModel(prompt: string): Promise<Record<string, unknown>> {
-    const r = await fetch("/api/analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
+  useEffect(() => {
+    if (!tsLoaded || !TURNSTILE_SITE_KEY || tsWidgetRef.current) return;
+    const el = tsBoxRef.current;
+    const ts = window.turnstile;
+    if (!el || !ts) return;
+    const settle = (err: Error) => {
+      const reject = tsRejectRef.current;
+      tsResolveRef.current = null;
+      tsRejectRef.current = null;
+      reject?.(err);
+    };
+    tsWidgetRef.current = ts.render(el, {
+      sitekey: TURNSTILE_SITE_KEY,
+      size: "invisible",
+      execution: "execute",
+      callback: (token) => {
+        const resolve = tsResolveRef.current;
+        tsResolveRef.current = null;
+        tsRejectRef.current = null;
+        resolve?.(token);
+      },
+      "error-callback": () => settle(new Error("Verification failed. Reload and try again.")),
+      "timeout-callback": () => settle(new Error("Verification timed out. Try again.")),
     });
-    const j = await r.json();
-    if (!r.ok) throw new Error(j?.detail || j?.error || `API call failed (${r.status})`);
-    return j as Record<string, unknown>;
+  }, [tsLoaded]);
+
+  function getTurnstileToken(): Promise<string> {
+    if (!TURNSTILE_SITE_KEY) return Promise.resolve("");
+    const ts = window.turnstile;
+    const id = tsWidgetRef.current;
+    if (!ts || !id) {
+      return Promise.reject(new Error("Verification is still loading. Try again in a moment."));
+    }
+    return new Promise<string>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        tsResolveRef.current = null;
+        tsRejectRef.current = null;
+        reject(new Error("Verification timed out. Try again."));
+      }, 20000);
+      tsResolveRef.current = (token) => {
+        clearTimeout(timer);
+        resolve(token);
+      };
+      tsRejectRef.current = (err) => {
+        clearTimeout(timer);
+        reject(err);
+      };
+      try {
+        ts.reset(id);
+        ts.execute(id);
+      } catch {
+        clearTimeout(timer);
+        tsResolveRef.current = null;
+        tsRejectRef.current = null;
+        reject(new Error("Verification failed. Reload and try again."));
+      }
+    });
+  }
+
+  async function callModel(prompt: string): Promise<Record<string, unknown>> {
+    const send = async (auth: Record<string, string>) => {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, ...auth }),
+      });
+      const next = res.headers.get("x-cadence-session");
+      if (next) sessionRef.current = next;
+      const data = await res.json();
+      return { res, data };
+    };
+
+    let out = sessionRef.current
+      ? await send({ sessionToken: sessionRef.current })
+      : await send({ turnstileToken: await getTurnstileToken() });
+
+    if (out.res.status === 403 && sessionRef.current) {
+      sessionRef.current = null;
+      out = await send({ turnstileToken: await getTurnstileToken() });
+    }
+
+    if (!out.res.ok) {
+      throw new Error(out.data?.error || `API call failed (${out.res.status})`);
+    }
+    return out.data as Record<string, unknown>;
   }
 
   const run = async () => {
@@ -215,6 +323,14 @@ ${text.slice(0, 30000)}`);
       </main>
       {state.note && <NoteView key={state.note.id} note={state.note} onClose={() => setState((s) => ({ ...s, note: null }))} />}
       <SavedNotes onNoteSelect={(note) => setState((s) => ({ ...s, note }))} />
+      {TURNSTILE_SITE_KEY && (
+        <Script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+          strategy="afterInteractive"
+          onLoad={() => setTsLoaded(true)}
+        />
+      )}
+      <div ref={tsBoxRef} />
     </>
   );
 }

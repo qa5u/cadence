@@ -2,11 +2,9 @@
 
 Paste a sales or business call transcript and get back a set of call notes: summary, key points, objections, action items, dated calendar events, and a next step.
 
-Built for [TODO: hackathon track, e.g. "Best Apps & Agents"].
+Built for a hackathon.
 
 - Demo: https://cadence.web.id
-- Video: [TODO: video URL]
-- Repo: [TODO: repo URL]
 
 ## What it does
 
@@ -58,6 +56,7 @@ Create `.env.local` in the project root (it's gitignored):
 | --- | --- | --- |
 | `NEBIUS_API_KEY` | yes | Nebius Token Factory API key, used only by the server route |
 | `NEBIUS_MODEL` | no | Overrides the model ID. Defaults to `nvidia/nemotron-3-super-120b-a12b` |
+| `TURNSTILE_SECRET_KEY` | no | Turnstile secret. Local dev uses Cloudflare's always-pass test secret; production reads a Worker secret |
 
 ```bash
 pnpm dev
@@ -80,13 +79,25 @@ The app runs on Cloudflare Workers with `@opennextjs/cloudflare` and is attached
 
 ```bash
 pnpm exec wrangler login
-pnpm exec wrangler secret put NEBIUS_API_KEY   # runtime secret
+pnpm exec wrangler secret put NEBIUS_API_KEY
+pnpm exec wrangler secret put TURNSTILE_SECRET_KEY
 pnpm run deploy
 ```
 
-`NEBIUS_MODEL` is a plain variable in `wrangler.jsonc`. `NEBIUS_API_KEY` is a Worker secret, read at runtime by `app/api/analyze/route.ts`.
+`NEBIUS_MODEL` is a plain variable in `wrangler.jsonc`. `NEBIUS_API_KEY` and `TURNSTILE_SECRET_KEY` are Worker secrets, read at runtime by `app/api/analyze/route.ts`.
+
+`pnpm run deploy` hides `.env.local` while it builds, so local secrets are not compiled into the Worker.
 
 `next.config.ts` leaves out Next's experimental `cacheComponents` and `partialPrefetching` flags. With them on, the first request hangs in workerd because of its `setTimeout` implementation.
+
+## Security
+
+- `POST /api/analyze` requires a Cloudflare Turnstile token. The browser gets one per request; the server verifies it against `https://challenges.cloudflare.com/turnstile/v0/siteverify`.
+- The route is limited to 10 requests per minute per IP with the Workers rate limiting binding in `wrangler.jsonc`.
+- Requests from another origin are rejected, the body is capped at 120 KB, and the prompt is capped at 40,000 characters.
+- Upstream errors are logged on the server and returned as a generic message.
+- `next.config.ts` sets CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and `Permissions-Policy` headers.
+- The Nebius key stays on the server. The public Turnstile site key is in `next.config.ts`; the secret is a Worker secret.
 
 ## Example
 
@@ -113,9 +124,9 @@ Output is a note with a title and summary, the people and companies involved, a 
 
 - Notes live only in your browser (localStorage, falling back to cookies). There are no accounts and no server storage, so clearing site data loses them, and they don't sync across devices.
 - The transcript sent to the model is capped at 30,000 characters for extraction and 6,000 for the call check, and uploads are limited to 2 MB. Long calls get truncated.
-- There's no auth. Anyone with the URL can spend your Nebius credits, so don't leave a funded key on a public deploy.
+- There are no user accounts. Turnstile and the per-IP limit cut down abuse, but the endpoint still spends credits for anyone who passes the bot check.
 - No automated tests yet; `pnpm lint` and `pnpm build` are the only checks.
 
 ## License
 
-[TODO: add a LICENSE file and name the license here]
+No license has been chosen yet. The code is not licensed for reuse until one is added.

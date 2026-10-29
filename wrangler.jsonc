@@ -18,6 +18,16 @@
   "vars": {
     "NEBIUS_MODEL": "nvidia/nemotron-3-super-120b-a12b",
   },
+  "ratelimits": [
+    {
+      "name": "ANALYZE_RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 10,
+        "period": 60,
+      },
+    },
+  ],
   "observability": {
     "enabled": true,
   },
