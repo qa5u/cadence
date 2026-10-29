@@ -22,7 +22,7 @@ export default function NoteView({ note, onClose }: { note: Note; onClose: () =>
   );
   const [newTask, setNewTask] = useState("");
   const nextIdRef = useRef(todoItems.length + 1);
-  const _initId = () => { nextIdRef.current += 1; return nextIdRef.current; };
+  const newTaskId = () => { nextIdRef.current += 1; return nextIdRef.current; };
   const showWidgets = note.action_items?.length > 0 || (note.events?.length ?? 0) > 0;
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export default function NoteView({ note, onClose }: { note: Note; onClose: () =>
     e.preventDefault();
     const t = newTask.trim();
     if (!t) return;
-    setTodoItems((prev) => [{ id: _initId(), text: t, done: false }, ...prev]);
+    setTodoItems((prev) => [{ id: newTaskId(), text: t, done: false }, ...prev]);
     setNewTask("");
   }, [newTask]);
 
@@ -152,7 +152,6 @@ export default function NoteView({ note, onClose }: { note: Note; onClose: () =>
   );
 }
 
-/* ---- Check icon ---- */
 function CheckIcon({ checked }: { checked: boolean }) {
   if (!checked) {
     return <span className="circle-empty" />;
@@ -166,7 +165,6 @@ function CheckIcon({ checked }: { checked: boolean }) {
   );
 }
 
-/* ---- Calendar body ---- */
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
 }
@@ -260,7 +258,6 @@ function CalendarBody({ events }: { events: CalEvent[] }) {
   );
 }
 
-/* ---- Todo body ---- */
 function TodoBody({ items, newTask, onTaskChange, onAdd, onToggle, onDelete }: {
   items: TodoItem[];
   newTask: string;
@@ -301,7 +298,6 @@ function TodoBody({ items, newTask, onTaskChange, onAdd, onToggle, onDelete }: {
   );
 }
 
-/* ---- Draggable widget — pointer-events based, no refs needed for state ---- */
 function DraggableWidget({
   id, pos, onPosChange, title, children,
 }: {

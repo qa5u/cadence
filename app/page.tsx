@@ -18,7 +18,6 @@ interface State {
   wordCount: number;
   busy: boolean;
   status: { message: string; error: boolean; loader: LoaderType } | null;
-  mood: "done" | null;
   note: Note | null;
 }
 
@@ -71,7 +70,6 @@ export default function Home() {
     wordCount: 0,
     busy: false,
     status: null,
-    mood: null,
     note: null,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -93,7 +91,7 @@ export default function Home() {
     const text = state.text;
     if (!text.trim() || state.busy) return;
 
-    setState((s) => ({ ...s, busy: true, mood: null }));
+    setState((s) => ({ ...s, busy: true }));
     setStatus("Checking this is a call", false, "dots");
 
     try {
@@ -134,11 +132,11 @@ ${text.slice(0, 30000)}`);
         next_step: typeof raw.next_step === "string" ? raw.next_step : "",
       };
       saveNoteToStorage(rec);
-      setState((s) => ({ ...s, busy: false, mood: "done", note: rec }));
+      setState((s) => ({ ...s, busy: false, note: rec }));
       setStatus(null);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Something went wrong. Try again.";
-      setState((s) => ({ ...s, busy: false, mood: null }));
+      setState((s) => ({ ...s, busy: false }));
       setStatus(message, true);
     }
   };
@@ -172,7 +170,7 @@ ${text.slice(0, 30000)}`);
     <>
       <main id="landing">
         <Doodles />
-        <ClefMascot _mood={state.mood} />
+        <ClefMascot />
         <h1>
           Every sales call,<br />
           turned into <em>action.</em>
@@ -228,8 +226,7 @@ function Loader({ type }: { type: LoaderType }) {
   return null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function ClefMascot({ _mood }: { _mood: "done" | null }) {
+function ClefMascot() {
   return (
     <div className="clef-wrap" aria-label="Clef, the Cadence mascot" role="img">
       <img className="clef-gif wave" src="/mascot_wave.gif" alt="Waving mascot" /* eslint-disable-line @next/next/no-img-element */ />

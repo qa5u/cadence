@@ -116,8 +116,6 @@ h1 em {
 
 .clef-gif.wave { opacity: 1; filter: blur(0); }
 .clef-gif.congrats { opacity: 0; filter: blur(12px); pointer-events: none; }
-body.done-mode .clef-gif.wave { opacity: 0; filter: blur(12px); }
-body.done-mode .clef-gif.congrats { opacity: 1; filter: blur(0); }
 body.show main { opacity: 0; pointer-events: none; }
 
 .stage {
