@@ -71,7 +71,7 @@ Other scripts:
 pnpm build   # production build
 pnpm start   # serve the production build
 pnpm lint    # eslint
-pnpm deploy  # build and deploy to Cloudflare Workers
+pnpm run deploy  # build and deploy to Cloudflare Workers
 ```
 
 ## Deploy
@@ -81,7 +81,7 @@ The app runs on Cloudflare Workers with `@opennextjs/cloudflare` and is attached
 ```bash
 pnpm exec wrangler login
 pnpm exec wrangler secret put NEBIUS_API_KEY   # runtime secret
-pnpm deploy
+pnpm run deploy
 ```
 
 `NEBIUS_MODEL` is a plain variable in `wrangler.jsonc`. `NEBIUS_API_KEY` is a Worker secret, read at runtime by `app/api/analyze/route.ts`.
