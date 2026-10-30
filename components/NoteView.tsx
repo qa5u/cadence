@@ -244,12 +244,12 @@ function CalendarBody({ events }: { events: CalEvent[] }) {
                 {selEvents.map((e, i) => (
                   <li key={i}>
                     {e.time && <time>{e.time}</time>}
-                    <span>{e.title}{e.owner ? ` — ${e.owner}` : ""}</span>
+                    <span>{e.title}{e.owner ? ` - ${e.owner}` : ""}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <span> — no events</span>
+              <span> - no events</span>
             )}
           </>
         ) : "Pick a date"}
