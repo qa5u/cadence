@@ -5,6 +5,9 @@ Paste a sales or business call transcript and get back a set of call notes: summ
 Built for a hackathon.
 
 - Demo: https://cadence.web.id
+- Repo: https://github.com/qa5u/cadence
+
+- Demo: https://cadence.web.id
 
 ## What it does
 
