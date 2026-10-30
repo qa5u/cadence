@@ -31,7 +31,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Cadence — Every sales call, turned into action.",
+  title: "Cadence: Every sales call, turned into action.",
   description: "Paste or upload a sales or business call transcript. Cadence checks it, then writes the notes.",
   icons: { icon: [{ url: "/favicon.png", sizes: "256x256", type: "image/png" }] },
 };
