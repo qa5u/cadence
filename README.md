@@ -7,8 +7,6 @@ Built for a hackathon.
 - Demo: https://cadence.web.id
 - Repo: https://github.com/qa5u/cadence
 
-- Demo: https://cadence.web.id
-
 ## What it does
 
 Most call notes are written after the fact, badly, or not at all. Cadence reads the transcript you already have and pulls out the parts a rep needs the next morning: what was agreed, what the buyer pushed back on, who owes what, and when the next meeting is.
